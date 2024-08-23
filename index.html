@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Upload and Preview</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        table {
+            margin-top: 20px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Excel File</h1>
+    <input type="file" id="fileInput" accept=".xls,.xlsx" />
+    <button id="uploadButton">Upload</button>
+
+    <div id="previewContainer" style="display:none;">
+        <h2>Preview Data</h2>
+        <table id="previewTable">
+            <thead>
+                <tr>
+                    <th>Author Name</th>
+                    <th>Author Email</th>
+                    <th>Author DOB</th>
+                    <th>Book Name</th>
+                    <th>ISBN</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button id="validateButton">Validate and Save</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewTableBody = document.querySelector('#previewTable tbody');
+        const validateButton = document.getElementById('validateButton');
+
+        let uploadedData = []; // Store the data for validation and saving
+
+        uploadButton.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file!');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('http://localhost:3000/api/preview', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                uploadedData = await response.json(); // Store the data
+                previewTableBody.innerHTML = ''; // Clear any existing rows
+
+                // Populate the table with the uploaded data
+                uploadedData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.AuthorName}</td>
+                        <td>${row.AuthorEmail}</td>
+                        <td>${row.AuthorDOB}</td>
+                        <td>${row.BookName}</td>
+                        <td>${row.ISBN}</td>
+                    `;
+                    previewTableBody.appendChild(tr);
+                });
+
+                // Show the preview container
+                previewContainer.style.display = 'block';
+            } else {
+                alert('Failed to upload file.');
+            }
+        });
+
+        validateButton.addEventListener('click', async () => {
+            const response = await fetch('http://localhost:3000/api/validate-and-save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(uploadedData)
+            });
+
+            if (response.ok) {
+                alert('Data successfully validated and saved!');
+                previewContainer.style.display = 'none'; // Optionally hide the preview table
+            } else {
+                alert('There was an error saving the data.');
+            }
+        });
+    </script>
+</body>
+</html>
